@@ -1,9 +1,12 @@
-use std::collections::BTreeSet;
+use std::{collections::BTreeSet, ops::Add};
 use std::fmt;
 use std::num;
 use std::str::FromStr;
 
-use chrono::{DateTime, Datelike, Duration, TimeZone, Timelike, Utc};
+use chrono::{
+    DateTime, Datelike, Duration, FixedOffset, Local, NaiveDate, NaiveDateTime, Offset, TimeZone,
+    Timelike, Utc,
+};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -58,6 +61,20 @@ impl TimerConfig {
                 continue;
             }
 
+            // TODO: day of year
+            let do_y = parse_field(&self.day_of_year, 1, 366)?;
+            // dbg!(&do_y);
+            // let du = next.signed_duration_since::<Local>(DateTime::from_utc(
+            //     NaiveDateTime::from_timestamp(next.timestamp(), 0),
+            //     FixedOffset::east(8 * 60 * 60),
+            // ));
+            // println!("ddddd {:?}", du.num_days());
+            if !do_y.contains(&6) {
+                next = Utc
+                    .ymd(next.year(), next.month(), next.day() + 1)
+                    .and_hms(0, 0, 0);
+                continue;
+            }
             // hour
             let hour = parse_field(&self.hour, 0, 23)?;
             // dbg!(&hour);
@@ -79,11 +96,6 @@ impl TimerConfig {
                     next.minute(),
                     next.second(),
                 );
-                println!(
-                    "next minite {:?}, next sec {:?}",
-                    next.minute(),
-                    next.second()
-                );
                 continue;
             }
 
@@ -95,11 +107,16 @@ impl TimerConfig {
                 continue;
             }
 
+            // TODO: week of month
+
             // day of week
             let do_w = parse_field(&self.day_of_week, 0, 6)?;
             // dbg!(&do_w);
             if !do_w.contains(&next.weekday().num_days_from_sunday()) {
                 next = next + Duration::days(1);
+                next = Utc
+                    .ymd(next.year(), next.month(), next.day())
+                    .and_hms(0, 0, 0);
                 continue;
             }
 
@@ -111,6 +128,11 @@ impl TimerConfig {
         };
 
         Ok(result)
+    }
+
+    /// 农历
+    pub fn parse_lunar_date<TZ: TimeZone>(&self) -> Result<DateTime<TZ>, ParseError> {
+        todo!()
     }
 }
 
@@ -268,7 +290,7 @@ mod tests {
                 "month": "*",
                 "week_of_month": "*",
                 "day_of_week": "2",
-                "day_of_year": "*",
+                "day_of_year": "222-223",
                 "week_of_year": "*",
                 "year": "*"
             }
@@ -291,8 +313,10 @@ mod tests {
         let c: TimerConfig = serde_json::from_str(config).unwrap();
         println!("config ==== {:?}", c);
         let dt = Utc::now().with_timezone(&Local);
-        let res = c.parse(&dt).unwrap();
-        println!("res = {:?}", res);
+        match c.parse(&dt) {
+            Ok(res) => println!("res = {:?}", res),
+            Err(e) => println!("no such date == {:?}", e.to_string())
+        }
     }
 
     #[test]
