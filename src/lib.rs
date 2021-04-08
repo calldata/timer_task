@@ -152,14 +152,12 @@ impl FromStr for Dow {
 impl std::error::Error for ParseError {}
 
 impl From<num::ParseIntError> for ParseError {
-    #[must_use]
     fn from(err: num::ParseIntError) -> Self {
         Self::ParseIntError(err)
     }
 }
 
 impl From<num::TryFromIntError> for ParseError {
-    #[must_use]
     fn from(err: num::TryFromIntError) -> Self {
         Self::TryFromIntError(err)
     }
@@ -177,6 +175,7 @@ impl std::fmt::Display for ParseError {
     }
 }
 
+/// 解析每一个配置项
 pub fn parse_field(field: &str, min: u32, max: u32) -> Result<BTreeSet<u32>, ParseError> {
     let mut values = BTreeSet::<u32>::new();
 
@@ -259,15 +258,16 @@ mod tests {
 
     #[test]
     fn test2() {
+        // 每周星期二八点
         let config = r#"
             {
-                "sec": "1/2",
-                "min": "2",
-                "hour": "1/2",
+                "sec": "0",
+                "min": "0",
+                "hour": "8",
                 "day_of_month": "*",
                 "month": "*",
                 "week_of_month": "*",
-                "day_of_week": "*",
+                "day_of_week": "2",
                 "day_of_year": "*",
                 "week_of_year": "*",
                 "year": "*"
